@@ -168,6 +168,25 @@ def test_missing_file_raises(tmp_path: Path) -> None:
         retrieve_files(tmp_path, "auth", stale)
 
 
+def test_absolute_path_rejected(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    root.mkdir()
+    outside = tmp_path / "outside.txt"
+    outside.write_text("auth secrets")
+    files = [DiscoveredFile(path=str(outside), size=outside.stat().st_size)]
+    with pytest.raises(ValueError):
+        retrieve_files(root, "auth", files)
+
+
+def test_parent_escape_path_rejected(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    root.mkdir()
+    (tmp_path / "outside.txt").write_text("auth secrets")
+    files = [DiscoveredFile(path="../outside.txt", size=12)]
+    with pytest.raises(ValueError):
+        retrieve_files(root, "auth", files)
+
+
 def test_non_utf8_file_scores_path_only(tmp_path: Path) -> None:
     target = tmp_path / "auth.bin"
     target.write_bytes(b"\xff\xfe\x00auth\x01\x02")

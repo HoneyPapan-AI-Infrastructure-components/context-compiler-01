@@ -89,8 +89,11 @@ callers pass `discover_files` output through.
 Error contract: any I/O error while reading file content
 propagates as `OSError` (stale or missing entries raise
 `FileNotFoundError`); retrieval never skips an unreadable file
-silently. Files that are not valid UTF-8 contribute path matches
-only. A non-string query raises `TypeError`.
+silently. Entries must use repository-relative paths as produced
+by `discover_files`: absolute paths, paths resolving outside the
+root, and symlinks escaping the root raise `ValueError` before
+any content is read. Files that are not valid UTF-8 contribute
+path matches only. A non-string query raises `TypeError`.
 
 ```python
 from context_compiler import discover_files, retrieve_files

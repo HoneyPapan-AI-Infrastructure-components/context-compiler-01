@@ -65,8 +65,17 @@ def _score_file(resolved_root: Path, relative: str, terms: set[str]) -> int:
 
 
 def _read_text(resolved_root: Path, relative: str) -> str:
-    data = (resolved_root / relative).read_bytes()
+    data = _resolve_within_root(resolved_root, relative).read_bytes()
     try:
         return data.decode("utf-8")
     except UnicodeDecodeError:
         return ""
+
+
+def _resolve_within_root(resolved_root: Path, relative: str) -> Path:
+    if Path(relative).is_absolute():
+        raise ValueError(relative)
+    target = (resolved_root / relative).resolve()
+    if not target.is_relative_to(resolved_root):
+        raise ValueError(relative)
+    return target
