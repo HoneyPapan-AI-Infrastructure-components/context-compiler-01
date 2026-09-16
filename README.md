@@ -1,14 +1,16 @@
 # Context Compiler
 
 V0 foundation: clean Python project with filesystem discovery,
-deterministic lexical retrieval, and a passing test suite. No
-chunking, compilation logic, or infrastructure yet.
+deterministic lexical retrieval, bounded context selection, and a
+passing test suite. No chunking, compilation logic, or
+infrastructure yet.
 
 ## Scope
 
 - In scope: repository layout, packaging metadata, filesystem
   discovery (`discover_files`), deterministic lexical retrieval
-  (`retrieve_files`), import sanity tests.
+  (`retrieve_files`), bounded context selection (`select_files`),
+  import sanity tests.
 - Out of scope: LLMs, embeddings, vector databases, Redis, Postgres,
   HTTP servers/clients, MCP, or any other infrastructure.
 - No application dependencies. Standard library only.
@@ -27,11 +29,13 @@ src/context_compiler/
   __init__.py
   discovery.py
   retrieval.py
+  selection.py
   py.typed
 tests/
   test_discovery.py
   test_package.py
   test_retrieval.py
+  test_selection.py
 ```
 
 ## Discovery
@@ -103,6 +107,35 @@ for item in retrieve_files("/path/to/repo", "authenticate login", files):
     print(item.path, item.score)
 ```
 
+## Selection
+
+`select_files(ranked, files, budget)` takes ranked retrieval results,
+the previously discovered `DiscoveredFile` entries, and a
+non-negative integer byte budget, returning a frozen
+`SelectedContext` (`paths`, `total_size`).
+
+Ranked files are processed in ranking order. Each path is looked up
+in the discovered entries; `DiscoveredFile.size` is the V0 budget
+cost. A file is selected when it fits within the remaining budget,
+otherwise it is skipped and later ranked files can still be
+selected. The budget is never exceeded and ranking order is
+preserved. Selection performs no filesystem reads.
+
+`budget` of `0` returns an empty selection, negative raises
+`ValueError`, empty ranked input returns an empty selection, ranked
+paths missing from the discovered entries are ignored, duplicate
+ranked paths are selected at most once, and output is deterministic
+for identical inputs.
+
+```python
+from context_compiler import discover_files, retrieve_files, select_files
+
+files = discover_files("/path/to/repo")
+ranked = retrieve_files("/path/to/repo", "authenticate login", files)
+selected = select_files(ranked, files, 20000)
+print(selected.paths, selected.total_size)
+```
+
 ## Quickstart
 
 Requires Python `>=3.10` and [`uv`](https://docs.astral.sh/uv/).
@@ -113,7 +146,9 @@ uv run --group dev pytest -q
 
 ## Status
 
-V0 — filesystem discovery plus lexical retrieval.
+V0 — filesystem discovery plus lexical retrieval plus bounded
+selection.
 `context_compiler` exposes `__version__` (`0.1.0`),
 `DiscoveredFile`, `discover_files`, `RankedFile`,
-`retrieve_files`, and `tokenize`.
+`retrieve_files`, `tokenize`, `SelectedContext`, and
+`select_files`.
