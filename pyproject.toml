@@ -1,7 +1,7 @@
 [project]
 name = "context-compiler"
 version = "0.1.0"
-description = "Context Compiler — V0 foundation (skeleton only, no retrieval yet)"
+description = "Context Compiler — V0 filesystem discovery"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
