@@ -140,7 +140,18 @@ def test_broken_symlink_skipped(tmp_path: Path) -> None:
     assert discover_files(tmp_path) == []
 
 
-def test_unreadable_directory_skipped(tmp_path: Path) -> None:
+def test_symlink_loop_skipped(tmp_path: Path) -> None:
+    first = tmp_path / "first.txt"
+    second = tmp_path / "second.txt"
+    try:
+        first.symlink_to(second)
+        second.symlink_to(first)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks not supported")
+    assert discover_files(tmp_path) == []
+
+
+def test_unreadable_directory_raises(tmp_path: Path) -> None:
     if os.name != "posix":
         pytest.skip("posix permissions required")
     if os.geteuid() == 0:
@@ -150,6 +161,7 @@ def test_unreadable_directory_skipped(tmp_path: Path) -> None:
     (locked / "hidden.txt").write_text("hidden")
     locked.chmod(0o000)
     try:
-        assert discover_files(tmp_path) == []
+        with pytest.raises(OSError):
+            discover_files(tmp_path)
     finally:
         locked.chmod(0o700)

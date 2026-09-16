@@ -38,10 +38,17 @@ tests/
 POSIX paths in stable sorted order. Generated and infrastructure
 directories (`.git`, `node_modules`, `.venv`, `venv`,
 `__pycache__`, `dist`, `build`, `coverage`, `.next`, `target`) are
-pruned during traversal. Directory symlinks are never followed and
-file symlinks resolving outside the repository are skipped.
-A nonexistent path raises `FileNotFoundError`; a file path raises
-`NotADirectoryError`.
+pruned during traversal.
+
+Error contract: a nonexistent path raises `FileNotFoundError`; a file
+path raises `NotADirectoryError`; any I/O error encountered during
+traversal (for example an unreadable directory) propagates as
+`OSError`. Discovery never returns partial results silently.
+
+Symlink contract: directory symlinks are never followed or emitted;
+file symlinks resolving outside the repository are skipped; broken
+symlinks and symlink loops are skipped; an internal file symlink is
+emitted under the symlink path with the target's size.
 
 ```python
 from context_compiler import discover_files

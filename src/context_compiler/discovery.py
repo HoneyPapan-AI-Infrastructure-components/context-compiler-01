@@ -39,15 +39,10 @@ def discover_files(root: Union[str, Path]) -> list[DiscoveredFile]:
 
 
 def _collect(resolved_root: Path, directory: Path, prefix: str, found: list[DiscoveredFile]) -> None:
-    try:
-        entries = sorted(scandir(directory), key=lambda entry: entry.name)
-    except OSError:
-        return
+    with scandir(directory) as iterator:
+        entries = sorted(iterator, key=lambda entry: entry.name)
     for entry in entries:
-        try:
-            _collect_entry(resolved_root, entry, prefix, found)
-        except (OSError, RuntimeError):
-            continue
+        _collect_entry(resolved_root, entry, prefix, found)
 
 
 def _collect_entry(resolved_root: Path, entry: DirEntry[str], prefix: str, found: list[DiscoveredFile]) -> None:
@@ -65,7 +60,12 @@ def _collect_entry(resolved_root: Path, entry: DirEntry[str], prefix: str, found
 
 
 def _collect_symlink(resolved_root: Path, entry: DirEntry[str], relative: str, found: list[DiscoveredFile]) -> None:
-    target = Path(entry.path).resolve()
+    try:
+        target = Path(entry.path).resolve()
+    except RuntimeError:
+        return
+    if target.is_symlink():
+        return
     if target.is_dir():
         return
     if not target.is_relative_to(resolved_root):
